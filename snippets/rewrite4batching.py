@@ -234,20 +234,20 @@ def translate(sentence, model, source_vocab, target_vocab, inv_target_vocab, max
 
         return ' '.join(translated)
 
-# # Example translations
-# test_sentences = [
-#     "hello",
-#     "how are you",
-#     "thank you",
-#     "i am fine",
-#     "goodbye",
-#     "see you later",
-#     "what is your name",
-#     "i love you",
-#     "have a nice day",
-#     "nice to meet you"
-# ]
+# Example translations
+test_sentences = [
+    "hello",
+    "how are you",
+    "thank you",
+    "i am fine",
+    "goodbye",
+    "see you later",
+    "what is your name",
+    "i love you",
+    "have a nice day",
+    "nice to meet you"
+]
 
-# for sentence in test_sentences:
-#     translation = translate(sentence, model, source_vocab, target_vocab, inv_target_vocab)
-#     print(f"Translation of '{sentence}': {translation}")
+for sentence in test_sentences:
+    translation = translate(sentence, model, source_vocab, target_vocab, inv_target_vocab)
+    print(f"Translation of '{sentence}': {translation}")
