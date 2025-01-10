@@ -50,6 +50,14 @@ class StringPairsFile:
     def generate_dict(self,min_count=1):
         for lang in self.languages:
             lang.generate_count_dictionary()
+        for i in range(self.languages[0].sentences.__len__()):
+            
+            if self.languages[0].check_word_count(i,min_count) and self.languages[1].check_word_count(i,min_count):
+                for lang in self.languages:
+                    lang.reduced_sentences.append(lang.sentences[i])
+        for lang in self.languages:
+            lang.tokenize()
+                
             
 
 class Language:
@@ -67,11 +75,22 @@ class Language:
 
     def append_current_words(self):
         self.sentences.append(self.current_words)
-    
-    def tokenize(self,min_count=1,include_unknown=False):
-        
 
+    def generate_count_dictionary(self):
 
+        self.word_counts = {}
+        for sentence in self.sentences:
+            for word in sentence:
+                value=self.word_counts.get(word,0)
+                self.word_counts[word]=value+1
+    def check_word_count(self,index:int,min_count:int):
+        for word in self.sentences[index]:
+            if self.word_counts[word]<min_count:
+                return False
+        return True     
+    def tokenize(self):
+        self.sentences=self.reduced_sentences
+        self.reduced_sentences=None
         self.word_dict = {}
         self.pad_tokken=0
         self.word_dict["<PAD>"] = self.pad_tokken
@@ -79,13 +98,11 @@ class Language:
         self.word_dict["<SOS>"] = self.sos_token
         self.eos_token=2
         self.word_dict["<EOS>"] = self.eos_token
-        self.unk_token=3
-        self.word_dict["<UNK>"] = self.unk_token
-        self.mask_token=4
+        self.mask_token=3
         self.word_dict["<MASK>"] = self.mask_token
-        for word, count in word_counts.items():
-            if count >= min_count:
-                self.word_dict[word] = len(self.word_dict)
+        self.generate_count_dictionary()
+        for word, count in self.word_counts.items():
+            self.word_dict[word] = len(self.word_dict)
 
         # tokenize sequences
         self.tokenized_sentences = []
@@ -93,30 +110,16 @@ class Language:
             sentence_tokens = []
             sentence_tokens.append(self.sos_token)
             for word in sentence:
-                sentence_tokens.append(self.word_dict.get(word, self.unk_token))
+                index=self.word_dict.get(word, None)
+                if index is None:
+                    # exit
+                    print(f"Word {word} not found in dictionary")
+                    exit()
+
+                sentence_tokens.append(index)
             sentence_tokens.append(self.eos_token)
             self.tokenized_sentences.append(sentence_tokens)
-    def generate_count_dictionary(self):
-        
-        word_counts = {}
-        for sentence in self.sentences:
-            for word in sentence:
-                value=word_counts.get(word,0)
-                word_counts[word]=value+1
-        self.word_counts=word_counts
 
-    def reduce_sentences(self,sentences,word_counts,min_count):
-        reduced_sentences = []
-        for sentence in sentences:
-            for word in sentence:
-                if word in word_counts and word_counts[word] >= min_count:
-                    reduced_sentence.append(word)
-                else:
-                    reduced_sentence.append("<UNK>")
-            reduced_sentences.append(reduced_sentence)
-        return reduced_sentences
-        
-    
 
                   
 
