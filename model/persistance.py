@@ -49,12 +49,13 @@ class StringPairsFile:
                         lang.reset_current_words()
     def generate_dict(self,min_count=1):
         for lang in self.languages:
-            lang.generate_dict(min_count)
+            lang.generate_count_dictionary()
             
 
 class Language:
     def __init__(self,max_length):
         self.sentences = []
+        self.reduced_sentences = []
         self.current_words:list[str]=None
         self.max_length=max_length
         self.tokenized_sentences=None
@@ -67,12 +68,10 @@ class Language:
     def append_current_words(self):
         self.sentences.append(self.current_words)
     
-    def generate_dict(self,min_count=1):
-        word_counts = {}
-        for sentence in self.sentences:
-            for word in sentence:
-                value=word_counts.get(word,0)
-                word_counts[word]=value+1
+    def tokenize(self,min_count=1,include_unknown=False):
+        
+
+
         self.word_dict = {}
         self.pad_tokken=0
         self.word_dict["<PAD>"] = self.pad_tokken
@@ -97,6 +96,28 @@ class Language:
                 sentence_tokens.append(self.word_dict.get(word, self.unk_token))
             sentence_tokens.append(self.eos_token)
             self.tokenized_sentences.append(sentence_tokens)
+    def generate_count_dictionary(self):
+        
+        word_counts = {}
+        for sentence in self.sentences:
+            for word in sentence:
+                value=word_counts.get(word,0)
+                word_counts[word]=value+1
+        self.word_counts=word_counts
+
+    def reduce_sentences(self,sentences,word_counts,min_count):
+        reduced_sentences = []
+        for sentence in sentences:
+            for word in sentence:
+                if word in word_counts and word_counts[word] >= min_count:
+                    reduced_sentence.append(word)
+                else:
+                    reduced_sentence.append("<UNK>")
+            reduced_sentences.append(reduced_sentence)
+        return reduced_sentences
+        
+    
+
                   
 
 class TranslationDataset(Dataset):
