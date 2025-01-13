@@ -3,6 +3,37 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import random
+from model import StringPairsFile
+from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import Dataset
+
+
+class TranslationDataset(Dataset):
+    def __init__(self,string_pairs_file:StringPairsFile):
+        self.string_pairs_file=string_pairs_file
+
+    def __len__(self):
+        return self.string_pairs_file.languages[0].tokenized_sentences.__len__()
+
+    def __getitem__(self, idx):
+        return torch.tensor(self.string_pairs_file.languages[0].tokenized_sentences[idx],dtype=torch.long), torch.tensor(self.string_pairs_file.languages[1].tokenized_sentences[idx],dtype=torch.long)
+    
+    def collate_fn(self,batch):
+        """
+        Collate function to be used with DataLoader.
+    
+        Args:
+            batch (list of tuples): Each tuple contains (src_tensor, tgt_tensor).
+    
+        Returns:
+            src_padded: Padded source sequences tensor [batch_size, src_max_len].
+            tgt_padded: Padded target sequences tensor [batch_size, tgt_max_len].
+        """
+        src, tgt = zip(*batch)
+        src_lengths = [len(s) for s in src]
+        src_padded = pad_sequence(src,batch_first=True, padding_value=self.string_pairs_file.languages[0].pad_tokken)
+        tgt_padded = pad_sequence(tgt,batch_first=True, padding_value=self.string_pairs_file.languages[1].pad_tokken)
+        return src_padded, tgt_padded , src_lengths
 
 class Encoder(nn.Module):
     def __init__(self, input_size, embed_size, hidden_size, num_layers=1):
@@ -66,3 +97,58 @@ class Seq2Seq(nn.Module):
             input = trg[:,t] if teacher_force else top1
 
         return outputs
+    
+def train_model(spf:StringPairsFile,device):
+    EMBED_SIZE=256
+    HIDDEN_SIZE=512    
+    TEACHER_FORCE_RATIO=0.5
+    LEARNING_RATE=0.001
+    NUM_EPOCHS=3
+    BATCH_SIZE=5000
+    dataset=TranslationDataset(spf)
+    dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=dataset.collate_fn)
+    print(spf.languages[0].word_dict.__len__())
+
+    OUTPUT_SIZE=spf.languages[1].word_dict.__len__()
+    INPUT_SIZE=spf.languages[0].word_dict.__len__()
+
+    encoder=Encoder(INPUT_SIZE,EMBED_SIZE,HIDDEN_SIZE,1).to(device)
+    decoder=Decoder(OUTPUT_SIZE,EMBED_SIZE,HIDDEN_SIZE,spf.languages[1].pad_tokken,1).to(device)
+    model=Seq2Seq(encoder,decoder,device).to(device)
+
+
+    criterion = nn.CrossEntropyLoss(ignore_index=spf.languages[1].pad_tokken)  # Ignore padding index
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    # calculate number of batches
+    batch_count = len(dataloader)
+    # Training
+    for epoch in range(NUM_EPOCHS):
+        model.train()
+        epoch_loss = 0
+        batch_nr=0
+        for batch_idx, (src_batch, tgt_batch, src_lengths) in enumerate(dataloader):
+            src_batch = src_batch.to(device)
+            tgt_batch = tgt_batch.to(device)
+
+            optimizer.zero_grad()
+
+            # Forward pass
+            outputs = model(src_batch, src_lengths, tgt_batch, TEACHER_FORCE_RATIO)
+            # outputs: [batch_size, trg_len, output_dim]
+            # tgt_batch: [batch_size, trg_len]
+
+            # Reshape for loss computation
+            outputs = outputs[:,1:].reshape(-1, OUTPUT_SIZE)
+            trg = tgt_batch[:,1:].reshape(-1)
+
+            loss = criterion(outputs, trg)
+            loss.backward()
+
+            optimizer.step()
+
+            epoch_loss += loss.item()
+            batch_nr+=1
+            print(f"Batch [{batch_nr}/{batch_count}], Loss: {loss.item():.4f} epoch {epoch+1}/{NUM_EPOCHS}")
+
+        avg_loss = epoch_loss / len(dataloader)
+        print(f"Epoch [{epoch+1}/{NUM_EPOCHS}], Loss: {avg_loss:.4f}")

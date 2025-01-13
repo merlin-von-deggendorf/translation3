@@ -1,3 +1,3 @@
 from .stringpairs import StringPairs
-from .persistance import StringPairsFile,TranslationDataset
+from .persistance import StringPairsFile
 
