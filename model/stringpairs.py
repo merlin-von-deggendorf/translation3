@@ -12,8 +12,6 @@ class StringPairs:
         s2=self.normalizeString(s2)
         self.pairs.append((s1,s2))
         
-    def transform_strings(self):
-        pass
     # Turn a Unicode string to plain ASCII, thanks to
     # https://stackoverflow.com/a/518232/2809427
     def unicodeToAscii(self,s):

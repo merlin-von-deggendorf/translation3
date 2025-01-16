@@ -57,6 +57,7 @@ class StringPairsFile:
                     lang.reduced_sentences.append(lang.sentences[i])
         for lang in self.languages:
             lang.tokenize()
+    
                 
             
 
@@ -67,6 +68,8 @@ class Language:
         self.current_words:list[str]=None
         self.max_length=max_length
         self.tokenized_sentences=None
+        self.reverse_dict=None
+        self.word_dict=None
     def set_current_words(self,sentence) ->bool:
         self.current_words=sentence.split()
         return len(self.current_words)<=self.max_length
@@ -119,6 +122,23 @@ class Language:
                 sentence_tokens.append(index)
             sentence_tokens.append(self.eos_token)
             self.tokenized_sentences.append(sentence_tokens)
+    def tokenize_sentence(self,sentence):
+        sentence_tokens = []
+        sentence_tokens.append(self.sos_token)
+        for word in sentence:
+            index=self.word_dict.get(word, None)
+            if index is None:
+                # exit
+                print(f"Word {word} not found in dictionary")
+                exit()
+
+            sentence_tokens.append(index)
+        sentence_tokens.append(self.eos_token)
+        return sentence_tokens
+    def generate_reverse_dict(self):
+        self.reverse_dict = {v: k for k, v in self.word_dict.items()}
+        return self.reverse_dict
+    
 
 
                   

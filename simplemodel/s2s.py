@@ -98,13 +98,13 @@ class Seq2Seq(nn.Module):
 
         return outputs
     
-def train_model(spf:StringPairsFile,device):
-    EMBED_SIZE=256
-    HIDDEN_SIZE=512    
-    TEACHER_FORCE_RATIO=0.5
-    LEARNING_RATE=0.001
-    NUM_EPOCHS=3
-    BATCH_SIZE=5000
+def train_model(spf:StringPairsFile,device,
+    EMBED_SIZE=256,
+    HIDDEN_SIZE=512,    
+    TEACHER_FORCE_RATIO=0.5,
+    LEARNING_RATE=0.001,
+    NUM_EPOCHS=3,
+    BATCH_SIZE=5000):
     dataset=TranslationDataset(spf)
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=dataset.collate_fn)
     print(spf.languages[0].word_dict.__len__())
