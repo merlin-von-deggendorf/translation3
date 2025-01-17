@@ -28,8 +28,10 @@ class Persistence:
             s1=sentences.senteces.get(link.id1)
             s2=sentences.senteces.get(link.id2)
             if s1 and s2:
-                if s1.lang == self.lang1 and s2.lang == self.lang2 or s1.lang == self.lang2 and s2.lang == self.lang1:
+                if s1.lang == self.lang1 and s2.lang == self.lang2:
                     self.spf.add_pair(s1.text,s2.text)
+                elif s1.lang == self.lang2 and s2.lang == self.lang1:
+                    self.spf.add_pair(s2.text,s1.text)
         self.spf.save()
     def get_sentece_pairs(self):
         # if it doesn't exist, generate it

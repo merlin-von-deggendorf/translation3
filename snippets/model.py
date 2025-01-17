@@ -127,8 +127,68 @@ class Trainer:
                 
             
             print(f"Epoch {epoch+1}, Loss: {total_loss/len(dataloader):.4f}")
+
+    # src sentence needs to be normalized first
+    def translate(self, src_sentence, max_len=50):
+        model = self.model
+        device = self.device
+        spf = self.spf
+
+        # Ensure the reverse dictionary for target language is generated
+        spf.languages[1].generate_reverse_dict()
+        reverse_dict = spf.languages[1].reverse_dict
+
+        # Tokenize and convert the source sentence to tensor
+        tokenized_src = spf.languages[0].tokenize_sentence(src_sentence)
+
+
+        src_tensor = torch.tensor(tokenized_src, dtype=torch.long, device=device).unsqueeze(0)  # shape: [1, seq_len]
+
+        # Encode the source sentence
+        with torch.no_grad():
+            model.eval()  # set model to evaluation mode
+            embedded_src = model.encoder_embedding(src_tensor)
+            encoder_outputs, hidden = model.encoder_rnn(embedded_src)
+
+            # Prepare the initial decoder input with the BOS token
+            bos_token = spf.languages[1].bos_token  # Ensure bos_token is defined
+            eos_token = spf.languages[1].eos_token  # Ensure eos_token is defined
+            decoder_input = torch.tensor([[bos_token]], dtype=torch.long, device=device)
+
+            translated_tokens = []
             
-          
+            # Greedy decoding loop
+            for _ in range(max_len):
+                embedded_dec_in = model.decoder_embedding(decoder_input)
+                decoder_outputs, hidden = model.decoder_rnn(embedded_dec_in, hidden)
+                
+                # Apply attention mechanism
+                attn_output, _ = model.attention(query=decoder_outputs,
+                                                 key=encoder_outputs,
+                                                 value=encoder_outputs)
+                output = model.fc_out(attn_output)  # shape: [1, 1, vocab_size]
+                
+                # Get the token with highest probability
+                next_token = output.argmax(-1)  # shape: [1, 1]
+                next_token_id = next_token.item()
+                
+                # Stop if EOS is predicted
+                if next_token_id == eos_token:
+                    break
+                
+                translated_tokens.append(next_token_id)
+                
+                # Prepare next input for decoder
+                decoder_input = next_token
+
+            # Convert token ids to words using reverse dictionary
+            translated_sentence = [reverse_dict[token] for token in translated_tokens if token in reverse_dict]
+            
+            model.train()  # revert model back to training mode if needed
+            
+        return ' '.join(translated_sentence)
+
+        
     def evaluate_dataset(self, dataset, batch_size):
         model = self.model
         criterion = self.criterion
@@ -168,63 +228,6 @@ class Trainer:
         # Compute and print average loss over all batches
         avg_loss = total_loss / total_batches if total_batches > 0 else float('inf')
         print(f"Evaluation Loss: {avg_loss:.4f}")
-        
         model.train()
-    def translate(self, src_sentence):
-        model = self.model
-        device = self.device
-        spf = self.spf
-        model.eval()
 
-        # Ensure the reverse dictionary for the target language is generated
-        spf.languages[1].generate_reverse_dict()
-        reverse_dict = spf.languages[1].reverse_dict
 
-        # 1) Tokenize and convert the source sentence to a tensor of shape [1 x src_length]
-        tokenized_src = spf.languages[0].tokenize_sentence(src_sentence)
-        src_tensor = torch.tensor(tokenized_src, dtype=torch.long).unsqueeze(0).to(device)
-
-        # 2) Run the encoder to get encoder outputs and the final hidden state
-        with torch.no_grad():
-            embedded_src = model.encoder_embedding(src_tensor)
-            encoder_outputs, hidden = model.encoder_rnn(embedded_src)
-
-        # 3) Greedy decoding
-        # Start the decoder input with the <sos> (start of sentence) token.
-        # Make sure you replace `sos_tokken` and `eos_tokken` with whatever names you have used.
-        next_token = spf.languages[1].sos_token
-        decoded_tokens = []
-
-        for _ in range(spf.languages[1].max_length+2):
-            # Prepare the decoder input of shape [1 x 1]
-            tgt_input = torch.tensor([[next_token]], dtype=torch.long).to(device)
-
-            with torch.no_grad():
-                # Pass through the decoder
-                embedded_tgt = model.decoder_embedding(tgt_input)
-                decoder_output, hidden = model.decoder_rnn(embedded_tgt, hidden)
-                
-                # Apply attention over the encoder outputs
-                attn_output, attn_weights = model.attention(
-                    query=decoder_output,
-                    key=encoder_outputs,
-                    value=encoder_outputs
-                )
-                
-                # Get the distribution over the target vocabulary
-                output = model.fc_out(attn_output)  # shape: [1, 1, vocab_size]
-                
-                # Greedy pick the token with the highest logit
-                next_token = torch.argmax(output, dim=-1).item()
-
-            # If we hit <eos>, stop decoding
-            if next_token == spf.languages[1].eos_token:
-                break
-
-            decoded_tokens.append(next_token)
-
-        # 4) Convert token IDs back to words using `reverse_dict`
-        translated_words = [reverse_dict[token_id] for token_id in decoded_tokens]
-        translated_sentence = " ".join(translated_words)
-
-        return translated_sentence

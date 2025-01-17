@@ -10,7 +10,7 @@ class StringPairsFile:
     def __init__(self, id):
         self.id = id
         self.path = f"d:/translations/pairs/{self.id}.txt.gz"
-        self.languages:list[Language] = None
+        self.languages:list[Language] = [Language(0),Language(0)]
     def does_exist(self):
         return os.path.exists(self.path)
 
