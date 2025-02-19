@@ -19,3 +19,6 @@ def NeedlemanWunsch(seq1,seq2):
                 matrix[i][j] = min(matrix[i-1][j-1],matrix[i-1][j],matrix[i][j-1])+1
     # return the distance
     return matrix[len(seq2)][len(seq1)]
+
+def NeedlemanWunschRatio(seq1,seq2):
+    return 1-NeedlemanWunsch(seq1,seq2)/max(len(seq1),len(seq2))

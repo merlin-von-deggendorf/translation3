@@ -5,7 +5,7 @@
             "name": "Launch Translation Parser",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/aamain.py",
+            "program": "${workspaceFolder}/not defined.py",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
         }

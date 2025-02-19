@@ -9,20 +9,25 @@ import gzip
 from torch.utils.data import random_split
 from aatranslator import Converter
 from aatranslator import NeedlemanWunsch
+from aatranslator import NeedlemanWunschRatio
 
 
 class AADataSet(Dataset):
-    def __init__(self,path,max_len=500):
+    def __init__(self,max_len=500):
         self.sequences:list[list[int]] = []
         self.sequences.append([])
         self.sequences.append([])
         self.converter:Converter=Converter()
         self.PAD_TOKEN = self.converter.PAD
+        self.path:str = ''
+        self.max_len = max_len
+        
+                     
+    def load(self,path:str):
         self.path = path
         is_even = False
         line1:str
         line2:str
-        self.max_len = max_len
         with gzip.open(self.path, "rt", encoding="utf-8-sig") as file:
             for line in file:
                 if is_even:
@@ -38,8 +43,7 @@ class AADataSet(Dataset):
         # if end is even, we should raise an exception
         if is_even:
             raise Exception("Odd number of lines in file")
-                     
-
+        
     def __len__(self):
         return self.sequences[0].__len__()
 
@@ -83,17 +87,20 @@ class Seq2SeqAttentionModel(nn.Module):
     
 class Trainer:
 
-    def __init__(self,data_set_path:str, device,
+    def __init__(self, device,
                 embed_size = 512,
                 hidden_size = 1024,
                 num_heads = 64,max_len=500):
-        self.aa_dataset:AADataSet = AADataSet(data_set_path,max_len)
+        self.aa_dataset:AADataSet = AADataSet(max_len)
         self.converter = self.aa_dataset.converter
         self.device = device
         model = Seq2SeqAttentionModel( embed_size, hidden_size, num_heads,self.converter)
         self.model = model.to(device)
         self.criterion = nn.CrossEntropyLoss(ignore_index=self.converter.PAD)
-        
+    def load_dataset(self,path:str):
+
+        self.aa_dataset.load(path)
+
     def train(self,
                 batch_size = 6000,
                 learning_rate = 0.001,
@@ -276,5 +283,19 @@ class Trainer:
         # calculate the distance between the real output and the output
         distance = NeedlemanWunsch(output,real_output)
         print(f'distance: {distance} sequence length: {len(real_output)} percentage: {(distance/len(real_output)):.2f}')
+    
+    def compare_identity(self,input:str,output:str):
+        # translate the input
+        translation = self.translate(input)
+        # calculate the distance between the real output and the output
+        distance2translation = NeedlemanWunschRatio(translation,output)
+        distanceinput2output=NeedlemanWunschRatio(input,output)
+        return distance2translation,distanceinput2output
+
+    
+    def save_model(self,path:str):
+        torch.save(self.model.state_dict(), path)
+    def load_model(self,path:str):
+        self.model.load_state_dict(torch.load(path))
     
     

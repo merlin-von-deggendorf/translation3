@@ -6,7 +6,8 @@ from aatranslator import Trainer
 
 device = torch.device('cuda')
 
-trainer = Trainer("c:/data/training/links.txt.gz",device,embed_size=16,hidden_size=512,num_heads=16,max_len=200)
+trainer = Trainer(device,embed_size=16,hidden_size=512,num_heads=16,max_len=200)
+trainer.load_dataset("c:/data/training/links.txt.gz")
 trainer.train(num_epochs=1,batch_size=50,eval_count=100)
 # pick random value from the training set
 for val in range(5):
