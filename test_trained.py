@@ -14,7 +14,7 @@ sequences.append([])
 sequences.append([])
 # load all sequences
 
-with gzip.open('c:/data/training/links.txt.gz', "rt", encoding="utf-8-sig") as file:
+with gzip.open('c:/data/training/links.eval.txt.gz', "rt", encoding="utf-8-sig") as file:
     is_even = False
     line1:str
     line2:str
@@ -35,13 +35,12 @@ with gzip.open('c:/data/training/links.txt.gz', "rt", encoding="utf-8-sig") as f
 
 accumulated_translation_performance = 0
 accumulated_original_performance = 0
-sample_size = 500
-for val in range(sample_size):
+len1 = len(sequences[0])
+for val in range(len1):
     # pick a random value from the training sample
-    idx = random.randint(0, len(sequences[0])-1)
-    translation_performance,original_performance=trainer.compare_identity(sequences[0][idx],sequences[1][idx])
+    translation_performance,original_performance=trainer.compare_identity(sequences[0][val],sequences[1][val])
     accumulated_translation_performance += translation_performance
     accumulated_original_performance += original_performance
-    print(f" original: {original_performance} ||| translation: {translation_performance} ||| average original: {accumulated_original_performance/(val+1)} ||| average translation: {accumulated_translation_performance/(val+1)} sample number: {val+1} out of {sample_size}")
+    print(f" original: {original_performance} ||| translation: {translation_performance} ||| average original: {accumulated_original_performance/(val+1)} ||| average translation: {accumulated_translation_performance/(val+1)} sample number: {val+1} out of {len1}")
 
-print(f"average original performance: {accumulated_original_performance/sample_size} average translation performance: {accumulated_translation_performance/sample_size}")
+print(f"average original performance: {accumulated_original_performance/len1} average translation performance: {accumulated_translation_performance/len1}")

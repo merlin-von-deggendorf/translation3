@@ -210,7 +210,7 @@ class Trainer:
         model.eval()
 
         # 1) Tokenize and convert the source sentence to a tensor of shape [1 x src_length]
-        tokenized_src = self.converter.convert_2_list(src_sentence,False)
+        tokenized_src = self.converter.convert_2_list(src_sentence,True)
         src_tensor = torch.tensor(tokenized_src, dtype=torch.long).unsqueeze(0).to(device)
 
         # 2) Run the encoder to get encoder outputs and the final hidden state

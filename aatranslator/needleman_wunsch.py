@@ -1,3 +1,5 @@
+import threading
+
 
 # comparing two sequences with the needleman-wunsch algorithm (global alignment)
 # generate custom implementation of the needleman-wunsch algorithm
@@ -22,3 +24,28 @@ def NeedlemanWunsch(seq1,seq2):
 
 def NeedlemanWunschRatio(seq1,seq2):
     return 1-NeedlemanWunsch(seq1,seq2)/max(len(seq1),len(seq2))
+
+class ParallelNeedleManWunschRatio:
+    def __init__(self,maxThreads):
+        self.maxThreads = maxThreads
+        self.semaphore = threading.Semaphore(maxThreads)
+        self.lock = threading.Lock()
+    def worker(self, seq1, seq2, on_finish):
+        try:
+            # Calculate the result using NeedlemanWunschRatio
+            result = NeedlemanWunschRatio(seq1, seq2)
+            # Store the result in a thread-safe way
+            with self.lock:
+                on_finish(result)
+        finally:
+            # Make sure to release the semaphore so another thread can start
+            self.semaphore.release()
+
+    def calculate(self, seq1, seq2,on_finish):
+        # Wait until a thread slot is available
+        self.semaphore.acquire()
+        # Start a new thread for the calculation
+        t = threading.Thread(target=self.worker, args=(seq1, seq2, on_finish))
+        t.start()
+
+print(NeedlemanWunschRatio("hellods","helooodsasdfasdfasdf"))
