@@ -1,25 +1,30 @@
 import tkinter as tk
 import gzip
+from typing import TYPE_CHECKING
+from metasearch import TaxDB
+# import TaxDB for recognition by editor
 
-metapath='c:/data/enzymes.txt.gz'
+    
 # create simple Frame
 
 class Taxonomy:
-    def __init__(self,taxid):
+    def __init__(self,taxid,type:int):
         self.taxid=taxid
-        self.sequences=[]
-        self.type=None #0=unknown, 1=Eukryota,2=prokaryota
+        self.sequences:list[Sequence]=[]
+        self.type:int=type #0=unknown, 1=Eukryota,2=prokaryota
     
 class Sequence:
     def __init__(self,sequence,taxonomie):
         self.sequence=sequence
-        self.reactions:list[Reaction]=[]
         self.taxonomie:Taxonomy=taxonomie
+        self.reactions:list[Reaction]=[]
 class Reaction:
-    def __init__(self,reaction,taxonomy:Taxonomy,metabolite_dict:dict[str,set[Taxonomy]]):    
+    def __init__(self,reaction,taxonomy:Taxonomy,metabolite_dict:dict[str,set[Taxonomy]]):
+        self.sides:list[Side]=[]
         self.reaction=reaction
         # split reaction by = and +
         substring=reaction.split(" = ")
+
         for substr in substring:
             substr=substr.strip()
             metaboites=substr.split(" + ")
@@ -31,16 +36,18 @@ class Reaction:
                     taxonomies=set()
                     metabolite_dict[metaboite]=taxonomies
                 taxonomies.add(taxonomy)
+class Side:
+    def __init__(self):
+        pass
+class Metabolite:
+    def __init__(self):
+        self.depth=-1
                 
 class MetaboliteDB:
-    def __init__(self):
-        # load the text of the metabolites
-        # read line by line
-        linecount = 0
-        # print first 1000 lines
-        self.taxonomies:dict[int,Taxonomy]={}
-        self.metaboliteDict:dict[str,set[Taxonomy]]=dict()
-
+    def __init__(self,metapath:str,taxDB:TaxDB):
+        self.reactionDB=[]
+        self.metaboliteDB:dict[str,Metabolite]=dict()
+        self.taxonomies:dict[int,Taxonomy]=dict()
         with gzip.open(metapath, "rt", encoding="utf-8-sig") as file:
             # read line by line
             while True:
@@ -50,12 +57,14 @@ class MetaboliteDB:
                     break
                 linecount += 1
                 taxid = file.readline().strip()
+                tid=int(taxid)
                 reaction_count = file.readline()
                 reactions:list[Reaction] = []
                 # check if taxid is already in dictionary
-                taxon=self.taxonomies.get(int(taxid))
+                taxon=self.taxonomies.get(tid)
                 if taxon==None:
-                    taxon=Taxonomy(int(taxid))
+                    taxtype=taxDB.get_base_type(tid)
+                    taxon=Taxonomy(tid,taxtype)
                     self.taxonomies[int(taxid)]=taxon
                 seq=Sequence(sequence,taxon)
                 taxon.sequences.append(seq)
@@ -64,15 +73,7 @@ class MetaboliteDB:
                     reaction=Reaction(reaction_string,taxon,self.metaboliteDict)
                     reactions.append(reaction)
                 seq.reactions=reactions
+        print(f'Prokaryota: {pro} Eukaryota: {eu} Unknown: {unknown}')
     
-    def search_metabolite(self,metabolite):
-        # find metabolite in dictionary
-        taxonomies=self.metaboliteDict.get(metabolite)
-        for taxonomy in taxonomies:
-            print(taxonomy.taxid)
-    def list_taxonomies(self):
-        print(f'Number of taxonomies: {len(self.taxonomies)}')
 
 
-mDB=MetaboliteDB()
-mDB.list_taxonomies()

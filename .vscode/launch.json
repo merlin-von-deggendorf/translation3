@@ -5,7 +5,7 @@
             "name": "Launch Translation Parser",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/not defined.py",
+            "program": "${workspaceFolder}/extract.py",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
         }
