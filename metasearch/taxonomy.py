@@ -1,3 +1,12 @@
+
+from enum import IntEnum
+# import TaxDB for recognition by editor
+# create simple Frame
+
+class TaxType(IntEnum):
+    UNKNOWN = 0
+    EUKARYOTA = 1
+    PROKARYOTA = 2
 class TaxDB:
     def __init__(self,path:str):
         self.nodes:dict[int,'Node']={}
@@ -75,19 +84,19 @@ class TaxDB:
                 if unique!="":
                     # get name
                     unique_name=unique
-    def get_base_type(self,taxid:int)->int: #0=unknown, 1=Eukryota,2=prokaryota
+    def get_base_type(self,taxid:int)->TaxType: #0=unknown, 1=Eukryota,2=prokaryota
     #      public enum RootType
     # {
-    #     Prokaryote = 2759, Eukaryote = 2, unknown = -1
+    #     Eukaryote = 2759, Prokaryote = 2
     # }
         node=self.nodes.get(taxid)
         while node is not None:
             if node.taxid==2759:
-                return 2
+                return TaxType.EUKARYOTA
             if node.taxid==2:
-                return 1
+                return TaxType.PROKARYOTA
             node=node.parent
-        return 0
+        return TaxType.UNKNOWN
 
 class Node:
     def __init__(self,taxid:int):
