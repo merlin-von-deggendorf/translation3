@@ -59,10 +59,9 @@ class AADataSet(Dataset):
     
 
 class Seq2SeqAttentionModel(nn.Module):
-    def __init__(self, embed_size, hidden_size, num_heads,converter:Converter):
+    def __init__(self, embed_size, hidden_size, num_heads, converter: Converter, dropout):
         super(Seq2SeqAttentionModel, self).__init__()
         self.hidden_size = hidden_size
-        
      
         self.embedding = nn.Embedding(converter.length, embed_size, padding_idx=converter.PAD)
         self.encoder_rnn = nn.GRU(embed_size, hidden_size, batch_first=True)
@@ -71,17 +70,22 @@ class Seq2SeqAttentionModel(nn.Module):
         self.attention = nn.MultiheadAttention(embed_dim=hidden_size, num_heads=num_heads, batch_first=True)
         self.fc_out = nn.Linear(hidden_size, converter.length)
         
+        # Dropout layer
+        self.dropout = nn.Dropout(dropout)
+        
     def forward(self, src, tgt):
-        embedded_src = self.embedding(src)
+        # Apply dropout to the embeddings
+        embedded_src = self.dropout(self.embedding(src))
         encoder_outputs, hidden = self.encoder_rnn(embedded_src)
         
-        embedded_tgt = self.embedding(tgt)
+        embedded_tgt = self.dropout(self.embedding(tgt))
         decoder_outputs, _ = self.decoder_rnn(embedded_tgt, hidden)
         
         attn_output, attn_weights = self.attention(query=decoder_outputs,
                                                    key=encoder_outputs,
                                                    value=encoder_outputs)
-        
+        # Apply dropout after attention
+        attn_output = self.dropout(attn_output)
         output = self.fc_out(attn_output)
         return output
     
@@ -90,11 +94,13 @@ class Trainer:
     def __init__(self, device,
                 embed_size = 512,
                 hidden_size = 1024,
-                num_heads = 64,max_len=500):
-        self.aa_dataset:AADataSet = AADataSet(max_len)
+                num_heads = 64,
+                max_len=500,
+                dropout=0.1):
+        self.aa_dataset: AADataSet = AADataSet(max_len)
         self.converter = self.aa_dataset.converter
         self.device = device
-        model = Seq2SeqAttentionModel( embed_size, hidden_size, num_heads,self.converter)
+        model = Seq2SeqAttentionModel(embed_size, hidden_size, num_heads, self.converter, dropout=dropout)
         self.model = model.to(device)
         self.criterion = nn.CrossEntropyLoss(ignore_index=self.converter.PAD)
     def load_dataset(self,path:str):
@@ -297,5 +303,5 @@ class Trainer:
         torch.save(self.model.state_dict(), path)
     def load_model(self,path:str):
         self.model.load_state_dict(torch.load(path))
-    
-    
+
+

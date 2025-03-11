@@ -3,25 +3,25 @@ import gzip
 import torch
 import random
 
-from aatranslator import Trainer
+from aatranslatorregular import Trainer
 import os
 
 trainingdata="c:/data/training/links.txt.gz"
 evaldata="c:/data/training/links.eval.txt.gz"
-model_path="c:/data/training/links.model"
+model_path="c:/data/training/droput.model"
 train_mode=False
 max_len=650
 
 
 device = torch.device('cuda')
 
-trainer = Trainer(device,embed_size=16,hidden_size=1024,num_heads=16,max_len=max_len)
+trainer = Trainer(device,embed_size=16,hidden_size=1024,num_heads=16,max_len=max_len,dropout=0.3)
 if os.path.exists(model_path):
     trainer.load_model(model_path)
 
 if train_mode:
     trainer.load_dataset(trainingdata)
-    trainer.train(num_epochs=2,batch_size=16)
+    trainer.train(num_epochs=1,batch_size=16)
     trainer.save_model(model_path)
 else:
     sequences:list[list[str]] = []
