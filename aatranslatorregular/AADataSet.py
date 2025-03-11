@@ -296,7 +296,7 @@ class Trainer:
         # calculate the distance between the real output and the output
         distance2translation = NeedlemanWunschRatio(translation,output)
         distanceinput2output=NeedlemanWunschRatio(input,output)
-        return distance2translation,distanceinput2output
+        return distance2translation,distanceinput2output,translation
 
     
     def save_model(self,path:str):

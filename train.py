@@ -27,6 +27,7 @@ else:
     sequences:list[list[str]] = []
     sequences.append([])
     sequences.append([])
+    sequences.append([])
     # load all sequences
 
     with gzip.open(evaldata, "rt", encoding="utf-8-sig") as file:
@@ -53,10 +54,15 @@ else:
     len1 = len(sequences[0])
     for val in range(len1):
         # pick a random value from the training sample
-        translation_performance,original_performance=trainer.compare_identity(sequences[0][val],sequences[1][val])
+        translation_performance,original_performance,sequence=trainer.compare_identity(sequences[0][val],sequences[1][val])
+        sequences[2].append(sequence)
         accumulated_translation_performance += translation_performance
         accumulated_original_performance += original_performance
         print(f" original: {original_performance} ||| translation: {translation_performance} ||| average original: {accumulated_original_performance/(val+1)} ||| average translation: {accumulated_translation_performance/(val+1)} sample number: {val+1} out of {len1}")
+        # print all three sequences
+        print(f"eu: {sequences[0][val]}")
+        print(f"pro: {sequences[1][val]}")
+        print(f"predict: {sequences[2][val]}")
 
     print(f"average original performance: {accumulated_original_performance/len1} average translation performance: {accumulated_translation_performance/len1}")
 
